@@ -1,6 +1,6 @@
 # Metodología — Índice Equiponderado Chile 15 (IEC15)
 
-**Versión 0.1** · 22 de septiembre de 2026
+**Versión 0.2** · 22 de septiembre de 2026
 
 Este documento fija las reglas del índice antes de calcular cualquier resultado, para que el backtest no pueda ajustarse a posteriori. Es un índice educativo y no constituye asesoría de inversión.
 
@@ -8,6 +8,7 @@ Este documento fija las reglas del índice antes de calcular cualquier resultado
 
 | Versión | Fecha | Cambio |
 | --- | --- | --- |
+| 0.2 | 22-sep-2026 | Se fija la fecha de lanzamiento, el fin del backtest (16-jul-2026), una regla de validación de datos y la fuente del benchmark. Cambio previo al cálculo en vivo, por lo que no aplica el plazo de consulta de la sección 7 |
 | 0.1 | 22-sep-2026 | Primera versión de las reglas |
 
 ## 1. Objetivo y decisiones de diseño
@@ -22,10 +23,11 @@ El índice mide el rendimiento de las 15 acciones chilenas más líquidas, todas
 | Moneda | Pesos chilenos (CLP) | IPSA se calcula en CLP |
 | Versión de retorno | Price Return en v0.1; Total Return en v0.2 | S&P/CLX publica PR, TR y NTR |
 | Rebalanceo | Trimestral | S&P 500 Equal Weight |
-| Fecha y nivel base | 31 de diciembre de 2019 = 1.000 puntos | Propuesta; incluye el periodo COVID |
+| Fecha y nivel base | 31 de diciembre de 2019 = 1.000 puntos | Incluye el periodo COVID como prueba de estrés |
+| Fecha de lanzamiento | 22 de septiembre de 2026 | Antes de esta fecha el rendimiento es hipotético; después, en vivo. Práctica de S&P DJI y MSCI |
 | Benchmark | S&P IPSA hasta el 31-ago-2026; MSCI IPSA desde el 1-sep-2026 | Cambio de administrador verificado |
 
-La serie del benchmark mezcla dos metodologías desde septiembre de 2026, así que toda comparación que cruce esa fecha lo declara.
+La serie del benchmark mezcla dos metodologías desde septiembre de 2026, así que toda comparación que cruce esa fecha lo declara. Para comparar, el benchmark se normaliza a 1.000 puntos en la fecha base.
 
 ## 2. Universo elegible y fuentes de datos
 
@@ -35,13 +37,18 @@ El universo líquido real es chico: en la consulta de S&P DJI de 2018, solo 175 
 
 | Dato | Fuente | Estado y limitación |
 | --- | --- | --- |
-| Precios diarios de cierre | Yahoo Finance vía yfinance (sufijo .SN) | Solo uso personal y educativo. Histórico de Chile roto desde ~17-jul-2026; el issue se cerró como "no planificado" |
+| Precios diarios de cierre | Yahoo Finance vía yfinance (sufijo .SN) | Solo uso personal y educativo. Datos válidos desde el 2-ene-2019 hasta el 16-jul-2026 |
 | Precios (validación) | Bolsa de Santiago | Fuente oficial; restricciones de uso |
 | Presencia bursátil y montos transados | Bolsa de Santiago | Publicada por la bolsa |
 | Número de acciones y grupos empresariales | CMF | Público |
+| Benchmark (IPSA) | API BDE del Banco Central, serie IPSA (base enero 2003 = 1.000) | Gratis con registro. El ticker ^IPSA de Yahoo no entrega datos. Respaldo: MSCI IPSA en Investing.com |
 | Indicadores macro (fase 2) | API BDE del Banco Central | Gratis con registro |
 
-**Pregunta abierta:** qué fuente de precios históricos usar si yfinance no entrega datos chilenos. Se prueba en el paso 3 (descarga de datos) antes de calcular nada.
+**Regla de validación de datos:** un día con volumen cero y el mismo precio de cierre que el día anterior se trata como día sin dato, no como un precio válido.
+
+**Resultado de la prueba del 22-sep-2026:** en 7 de 8 acciones probadas, 43 o 44 de los 46 días posteriores al 17-jul-2026 cumplían esa condición, es decir, yfinance repite el último precio. Banco de Chile (CHILE.SN) fue la excepción. Por eso el backtest termina el 16-jul-2026 (sección 6).
+
+**Pregunta abierta:** qué fuente de precios usar para el cálculo en vivo desde el 17-jul-2026.
 
 Los datos descargados se guardan en `data/raw/`, carpeta excluida del repositorio público por los términos de uso de Yahoo Finance.
 
@@ -105,7 +112,13 @@ $$
 
 ## 6. Backtest
 
-El backtest cubre desde la fecha base (31-dic-2019) hasta el último dato disponible, y todo resultado se rotula como rendimiento hipotético. Los parámetros de este documento quedan fijos antes de correrlo y no se ajustan después de ver los resultados. Es la principal defensa contra el sobreajuste que describen Bailey, Borwein, López de Prado y Zhu (2014).
+El backtest cubre desde la fecha base (31-dic-2019) hasta el 16-jul-2026, último día con datos confiables, y todo resultado se rotula como rendimiento hipotético. Los parámetros de este documento quedan fijos antes de correrlo y no se ajustan después de ver los resultados. Es la principal defensa contra el sobreajuste que describen Bailey, Borwein, López de Prado y Zhu (2014).
+
+| Tramo | Fechas | Tratamiento |
+| --- | --- | --- |
+| Backtest | 31-dic-2019 al 16-jul-2026 | Rendimiento hipotético |
+| Sin datos confiables | 17-jul-2026 al 21-sep-2026 | No se publican niveles diarios. El rebalanceo de septiembre de 2026 no se ejecuta y se mantiene la canasta vigente |
+| En vivo | Desde el 22-sep-2026 | El cálculo se reanuda con la canasta vigente cuando haya una fuente de precios validada. El cambio entre el 16-jul-2026 y la reanudación se reporta como un solo movimiento |
 
 | Sesgo | Riesgo en este proyecto | Medida |
 | --- | --- | --- |
@@ -119,7 +132,7 @@ El backtest cubre desde la fecha base (31-dic-2019) hasta el último dato dispon
 - Máxima caída (drawdown) y su duración
 - Tracking error contra el IPSA
 - Rotación (turnover) en cada rebalanceo
-- Resultados por subperiodo: 2020, 2021–2023 y 2024 en adelante
+- Resultados por subperiodo: 2020, 2021–2023 y 2024 al 16-jul-2026
 
 Los resultados se presentan brutos, sin costos de transacción. Esto se declara, porque la rotación de un equiponderado es mayor que la de un índice por capitalización: S&P midió 29% anual contra 5% en EE.UU.
 
