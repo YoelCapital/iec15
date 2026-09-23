@@ -181,3 +181,5 @@ cython_debug/
 .cursorindexingignore
 # Datos descargados (no se publican por términos de uso de Yahoo)
 data/raw/
+# Credenciales de la API del Banco Central (nunca se suben)
+credenciales.txt
