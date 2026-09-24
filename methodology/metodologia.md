@@ -1,6 +1,6 @@
 # Metodología — Índice Equiponderado Chile 15 (IEC15)
 
-**Versión 0.3** · 23 de septiembre de 2026
+**Versión 0.4** · 24 de septiembre de 2026
 
 Este documento fija las reglas del índice antes de calcular cualquier resultado, para que el backtest no pueda ajustarse a posteriori. Es un índice educativo y no constituye asesoría de inversión.
 
@@ -8,6 +8,7 @@ Este documento fija las reglas del índice antes de calcular cualquier resultado
 
 | Versión | Fecha | Cambio |
 | --- | --- | --- |
+| 0.4 | 24-sep-2026 | La presencia bursátil (1.000 UF) se reemplaza por la frecuencia de negociación de MSCI (80% nuevas, 70% vigentes, 3 meses), porque la validación contra casos oficiales mostró que el volumen de Yahoo no permite medir un umbral en UF (sección 3). Se definen el universo de candidatas, el calendario de días hábiles y la composición inicial, y se documentan las limitaciones de datos. Cambio decidido antes de calcular cualquier retorno del índice |
 | 0.3 | 23-sep-2026 | El benchmark pasa a ser el S&P CLX IPSA diario (Investing.com), validado contra la serie oficial del Banco Central. Se precisa que el último día del backtest es el 15-jul-2026, porque el 16-jul fue feriado. No cambia ninguna regla de cálculo del índice, por lo que no requiere consulta |
 | 0.2 | 22-sep-2026 | Se fija la fecha de lanzamiento, el fin del backtest (16-jul-2026), una regla de validación de datos y la fuente del benchmark. Cambio previo al cálculo en vivo, por lo que no aplica el plazo de consulta de la sección 7 |
 | 0.1 | 22-sep-2026 | Primera versión de las reglas |
@@ -16,7 +17,7 @@ Este documento fija las reglas del índice antes de calcular cualquier resultado
 
 El índice mide el rendimiento de las 15 acciones chilenas más líquidas, todas con el mismo peso, y se compara contra el IPSA. El objetivo es responder una pregunta simple: ¿qué pasa si cada empresa grande pesa lo mismo, en vez de dominar las de mayor capitalización?
 
-| Parámetro | Valor v0.1 | Base en una metodología real |
+| Parámetro | Valor | Base en una metodología real |
 | --- | --- | --- |
 | Nombre de trabajo | Índice Equiponderado Chile 15 (IEC15) | — |
 | Tipo | Equiponderado (equal weight) | S&P 500 Equal Weight |
@@ -32,7 +33,11 @@ La serie del benchmark mezcla dos metodologías desde septiembre de 2026, así q
 
 ## 2. Universo elegible y fuentes de datos
 
-Son elegibles las acciones listadas en la Bolsa de Santiago (nuam) con al menos 6 meses de cotización. Se excluyen las AFP, igual que en el IPSA, y los fondos de inversión, ETF y CFI. Si una empresa tiene varias series de acciones, entra solo la más líquida.
+Son elegibles las acciones listadas en la Bolsa de Santiago (nuam) con al menos 6 meses de cotización. Se excluyen las AFP, igual que en el IPSA, los fondos de inversión, fondos mutuos, ETF y CFI, y los valores extranjeros del mercado internacional. Si una empresa tiene varias series de acciones, entra solo la más líquida.
+
+**Universo de candidatas:** de 568 valores que el buscador de Yahoo Finance asocia a la bolsa de Santiago, quedan 90 candidatas. La lista completa, con la decisión y el motivo de cada exclusión, está en `data/reference/universo_candidatos.csv`.
+
+**Calendario de días hábiles:** un día es hábil si el IPSA tuvo cierre en la serie diaria de Investing.com.
 
 El universo líquido real es chico: en la consulta de S&P DJI de 2018, solo 175 de 1.179 valores listados tenían transacciones diarias relevantes. Se espera un universo útil de entre 20 y 40 acciones.
 
@@ -40,7 +45,8 @@ El universo líquido real es chico: en la consulta de S&P DJI de 2018, solo 175 
 | --- | --- | --- |
 | Precios diarios de cierre | Yahoo Finance vía yfinance (sufijo .SN) | Solo uso personal y educativo. Datos válidos desde el 2-ene-2019 hasta el 15-jul-2026 |
 | Precios (validación) | Bolsa de Santiago | Fuente oficial; restricciones de uso |
-| Presencia bursátil y montos transados | Bolsa de Santiago | Publicada por la bolsa |
+| Volumen transado diario | Yahoo Finance vía yfinance | Se usa para la frecuencia de negociación y el ranking de liquidez. Su nivel no es comparable entre años (ver limitaciones) |
+| Montos transados mensuales (control) | API BDE del Banco Central, serie F022.MB4.FLU.Z.Z.Z.M | Solo para revisar la consistencia del volumen de Yahoo en el tiempo |
 | Número de acciones y grupos empresariales | CMF | Público |
 | Benchmark (IPSA) | S&P CLX IPSA diario en Investing.com (versión de precio) | Solo uso personal; se guarda en `data/raw/`. El ticker ^IPSA de Yahoo no entrega datos |
 | Benchmark (control de calidad) | API BDE del Banco Central, serie F013.IBC.IND.N.7.LAC.CL.CLP.BLO.M | Gratis con registro. Es un promedio mensual, no un cierre, por lo que solo se usa para validar |
@@ -56,14 +62,23 @@ El universo líquido real es chico: en la consulta de S&P DJI de 2018, solo 175 
 
 Los datos descargados se guardan en `data/raw/`, carpeta excluida del repositorio público por los términos de uso de Yahoo Finance.
 
+**Limitaciones de datos conocidas:**
+
+- **Empresas deslistadas sin datos:** AES Andes, Grupo Security y La Polar no tienen datos en Yahoo Finance. AES Andes y Grupo Security eran parte del IPSA en 2019 y podrían haber competido por los últimos cupos; no participan en la selección.
+- **Cambios de nombre:** Itaú (ITAUCL) y Pampa Investments (PAMPA) conservan su historia desde 2019 bajo el ticker actual. Cencosud Shopping (CENCOMALLS) tiene datos desde el 28-jun-2019, fecha en que empezó a cotizar.
+- **Nivel del volumen de Yahoo:** comparado con una serie mensual de montos transados del Banco Central, la razón entre ambas es estable entre 2019 y 2023 (222% a 284%) y salta desde 2024 (675% a 1.135%). El nivel del volumen de Yahoo no es comparable entre años. El ranking de liquidez compara acciones en una misma fecha, por lo que se ve menos afectado.
+- **SQM-A en 2021:** Yahoo registra para SQM-A un valor transado muy superior al de SQM-B entre el segundo y el cuarto trimestre de 2021, con precios coherentes entre ambas series. No se pudo verificar si fue actividad real. El impacto en el índice es bajo, porque ambas series son la misma empresa y sus precios se mueven juntos.
+
 ## 3. Criterios de selección
 
 Entran las 15 acciones elegibles con mayor liquidez, con un colchón que evita que una acción entre y salga en cada revisión. Las reglas se aplican en este orden:
 
-1. **Presencia bursátil:** 85% o más para acciones nuevas y 80% o más para componentes vigentes. Es el mismo umbral del S&P IPSA.
+1. **Frecuencia de negociación:** porcentaje de días hábiles de los últimos 3 meses con al menos una transacción. Mínimo 80% para acciones nuevas y 70% para componentes vigentes. Son los umbrales del MSCI NUAM Index.
 2. **Liquidez:** las acciones que pasan el filtro 1 se ordenan por la mediana del valor diario transado (MDVT) de los últimos 6 meses, como en el S&P IPSA.
 3. **Colchón de entrada y salida:** las 12 primeras del ranking entran directamente. Los 3 cupos restantes se llenan primero con componentes vigentes que estén entre los 18 primeros; si faltan, con las siguientes del ranking. Es el colchón del IPSA (25 directas y 5 desde el top 35) escalado a 15.
 4. **Mínimo de componentes:** si quedan menos de 15 acciones elegibles, el índice opera con las que haya, con un mínimo de 12. Bajo 12 se revisa la metodología.
+
+**Por qué frecuencia de negociación y no presencia bursátil (v0.4):** la presencia bursátil oficial cuenta los días con transacciones de al menos 1.000 UF. Aproximada con precio × volumen de Yahoo, IAM, SalfaCorp e ILC obtenían cerca de 45% en agosto de 2019, cuando oficialmente cumplían con al menos 85–90%: IAM entró al IPSA en septiembre de 2019 y SalfaCorp e ILC eran componentes vigentes. Con la frecuencia de negociación, las tres obtienen 100%. La frecuencia solo requiere saber si hubo transacciones, por lo que no depende del nivel del volumen de Yahoo. En noviembre de 2019, 51 acciones tenían frecuencia de 80% o más; el ranking de liquidez decide cuáles entran.
 
 **Free float en v0.1:** no se aplica un filtro de free float, porque no hay una fuente gratuita verificada del porcentaje flotante por acción. Como el peso es igual para todas, el free float no afecta la ponderación. En v0.2 se evaluará un mínimo de 15%, que es el umbral de MSCI, si se confirma una fuente.
 
@@ -78,9 +93,12 @@ En cada rebalanceo todas las acciones vuelven a pesar lo mismo: 1/15, es decir, 
 | Fecha de referencia (datos de selección) | Cierre del tercer viernes de febrero, mayo, agosto y noviembre |
 | Anuncio de la nueva composición | 5 días hábiles antes de la fecha efectiva |
 | Precios para fijar las unidades | Cierre de 7 días hábiles antes de la fecha efectiva, como hace S&P |
+| Fecha de referencia en día no hábil | Se usa el último día hábil anterior |
 | Fecha efectiva | Después del cierre del tercer viernes de marzo, junio, septiembre y diciembre |
 
-Como las unidades se fijan con precios de 7 días antes, los pesos efectivos quedan cerca de 6,67%, no exactos. Es la práctica de S&P y evita usar información que no estaba disponible al anunciar el cambio.
+**Composición inicial:** la selección con fecha de referencia 15-nov-2019 define los componentes al 31-dic-2019. Las unidades se fijan con los precios de cierre del 31-dic-2019, para que el índice parta con pesos exactamente iguales.
+
+Como en los rebalanceos siguientes las unidades se fijan con precios de 7 días antes, los pesos efectivos quedan cerca de 6,67%, no exactos. Es la práctica de S&P y evita usar información que no estaba disponible al anunciar el cambio.
 
 ## 5. Fórmula de cálculo y eventos corporativos
 
@@ -126,7 +144,7 @@ El backtest cubre desde la fecha base (31-dic-2019) hasta el 15-jul-2026, últim
 
 | Sesgo | Riesgo en este proyecto | Medida |
 | --- | --- | --- |
-| Supervivencia | Alto: no hay composición histórica punto en el tiempo gratis, y las acciones deslistadas suelen faltar en las fuentes | Se usan todas las acciones con datos en cada fecha de revisión, no solo las actuales, y se lista cada deslistada que falte |
+| Supervivencia | Alto: no hay composición histórica punto en el tiempo gratis, y las acciones deslistadas suelen faltar en las fuentes | Se usan todas las acciones con datos en cada fecha de revisión, no solo las actuales. Faltan AES Andes, Grupo Security y La Polar (sección 2) |
 | Anticipación (look-ahead) | Medio: usar datos que no existían en la fecha de decisión | Selección con datos a la fecha de referencia; unidades con precios de 7 días hábiles antes |
 | Sobreajuste | Bajo: el equiponderado no tiene parámetros que optimizar | Reglas fijas antes del cálculo; cualquier variante probada se reporta, aunque salga peor |
 
