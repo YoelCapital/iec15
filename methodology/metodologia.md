@@ -1,6 +1,6 @@
 # Metodología — Índice Equiponderado Chile 15 (IEC15)
 
-**Versión 0.2** · 22 de septiembre de 2026
+**Versión 0.3** · 23 de septiembre de 2026
 
 Este documento fija las reglas del índice antes de calcular cualquier resultado, para que el backtest no pueda ajustarse a posteriori. Es un índice educativo y no constituye asesoría de inversión.
 
@@ -8,6 +8,7 @@ Este documento fija las reglas del índice antes de calcular cualquier resultado
 
 | Versión | Fecha | Cambio |
 | --- | --- | --- |
+| 0.3 | 23-sep-2026 | El benchmark pasa a ser el S&P CLX IPSA diario (Investing.com), validado contra la serie oficial del Banco Central. Se precisa que el último día del backtest es el 15-jul-2026, porque el 16-jul fue feriado. No cambia ninguna regla de cálculo del índice, por lo que no requiere consulta |
 | 0.2 | 22-sep-2026 | Se fija la fecha de lanzamiento, el fin del backtest (16-jul-2026), una regla de validación de datos y la fuente del benchmark. Cambio previo al cálculo en vivo, por lo que no aplica el plazo de consulta de la sección 7 |
 | 0.1 | 22-sep-2026 | Primera versión de las reglas |
 
@@ -37,16 +38,19 @@ El universo líquido real es chico: en la consulta de S&P DJI de 2018, solo 175 
 
 | Dato | Fuente | Estado y limitación |
 | --- | --- | --- |
-| Precios diarios de cierre | Yahoo Finance vía yfinance (sufijo .SN) | Solo uso personal y educativo. Datos válidos desde el 2-ene-2019 hasta el 16-jul-2026 |
+| Precios diarios de cierre | Yahoo Finance vía yfinance (sufijo .SN) | Solo uso personal y educativo. Datos válidos desde el 2-ene-2019 hasta el 15-jul-2026 |
 | Precios (validación) | Bolsa de Santiago | Fuente oficial; restricciones de uso |
 | Presencia bursátil y montos transados | Bolsa de Santiago | Publicada por la bolsa |
 | Número de acciones y grupos empresariales | CMF | Público |
-| Benchmark (IPSA) | API BDE del Banco Central, serie IPSA (base enero 2003 = 1.000) | Gratis con registro. El ticker ^IPSA de Yahoo no entrega datos. Respaldo: MSCI IPSA en Investing.com |
+| Benchmark (IPSA) | S&P CLX IPSA diario en Investing.com (versión de precio) | Solo uso personal; se guarda en `data/raw/`. El ticker ^IPSA de Yahoo no entrega datos |
+| Benchmark (control de calidad) | API BDE del Banco Central, serie F013.IBC.IND.N.7.LAC.CL.CLP.BLO.M | Gratis con registro. Es un promedio mensual, no un cierre, por lo que solo se usa para validar |
 | Indicadores macro (fase 2) | API BDE del Banco Central | Gratis con registro |
 
 **Regla de validación de datos:** un día con volumen cero y el mismo precio de cierre que el día anterior se trata como día sin dato, no como un precio válido.
 
-**Resultado de la prueba del 22-sep-2026:** en 7 de 8 acciones probadas, 43 o 44 de los 46 días posteriores al 17-jul-2026 cumplían esa condición, es decir, yfinance repite el último precio. Banco de Chile (CHILE.SN) fue la excepción. Por eso el backtest termina el 16-jul-2026 (sección 6).
+**Resultado de la prueba del 22-sep-2026:** en 7 de 8 acciones probadas, 43 o 44 de los 46 días posteriores al 17-jul-2026 cumplían esa condición, es decir, yfinance repite el último precio. Banco de Chile (CHILE.SN) fue la excepción. Por eso el backtest termina el 15-jul-2026, último día hábil antes del quiebre (sección 6).
+
+**Validación del benchmark (23-sep-2026):** el cierre del 30-nov-2023 en Investing (5.818,51) coincide con el reportado en prensa. Al promediar por mes los datos diarios de Investing, la diferencia contra la serie del Banco Central fue de 0,014% como máximo en 90 meses (ene-2019 a jun-2026). Julio de 2026 difiere 0,245% porque el mes está incompleto. La misma prueba confirmó que la serie del Banco Central es un promedio mensual.
 
 **Pregunta abierta:** qué fuente de precios usar para el cálculo en vivo desde el 17-jul-2026.
 
@@ -112,13 +116,13 @@ $$
 
 ## 6. Backtest
 
-El backtest cubre desde la fecha base (31-dic-2019) hasta el 16-jul-2026, último día con datos confiables, y todo resultado se rotula como rendimiento hipotético. Los parámetros de este documento quedan fijos antes de correrlo y no se ajustan después de ver los resultados. Es la principal defensa contra el sobreajuste que describen Bailey, Borwein, López de Prado y Zhu (2014).
+El backtest cubre desde la fecha base (31-dic-2019) hasta el 15-jul-2026, último día hábil con datos confiables (el 16-jul fue feriado), y todo resultado se rotula como rendimiento hipotético. Los parámetros de este documento quedan fijos antes de correrlo y no se ajustan después de ver los resultados. Es la principal defensa contra el sobreajuste que describen Bailey, Borwein, López de Prado y Zhu (2014).
 
 | Tramo | Fechas | Tratamiento |
 | --- | --- | --- |
-| Backtest | 31-dic-2019 al 16-jul-2026 | Rendimiento hipotético |
-| Sin datos confiables | 17-jul-2026 al 21-sep-2026 | No se publican niveles diarios. El rebalanceo de septiembre de 2026 no se ejecuta y se mantiene la canasta vigente |
-| En vivo | Desde el 22-sep-2026 | El cálculo se reanuda con la canasta vigente cuando haya una fuente de precios validada. El cambio entre el 16-jul-2026 y la reanudación se reporta como un solo movimiento |
+| Backtest | 31-dic-2019 al 15-jul-2026 | Rendimiento hipotético |
+| Sin datos confiables | 16-jul-2026 al 21-sep-2026 | No se publican niveles diarios. El rebalanceo de septiembre de 2026 no se ejecuta y se mantiene la canasta vigente |
+| En vivo | Desde el 22-sep-2026 | El cálculo se reanuda con la canasta vigente cuando haya una fuente de precios validada. El cambio entre el 15-jul-2026 y la reanudación se reporta como un solo movimiento |
 
 | Sesgo | Riesgo en este proyecto | Medida |
 | --- | --- | --- |
@@ -132,7 +136,7 @@ El backtest cubre desde la fecha base (31-dic-2019) hasta el 16-jul-2026, últim
 - Máxima caída (drawdown) y su duración
 - Tracking error contra el IPSA
 - Rotación (turnover) en cada rebalanceo
-- Resultados por subperiodo: 2020, 2021–2023 y 2024 al 16-jul-2026
+- Resultados por subperiodo: 2020, 2021–2023 y 2024 al 15-jul-2026
 
 Los resultados se presentan brutos, sin costos de transacción. Esto se declara, porque la rotación de un equiponderado es mayor que la de un índice por capitalización: S&P midió 29% anual contra 5% en EE.UU.
 
@@ -162,7 +166,9 @@ La regla práctica: describir el índice y sus resultados, nunca decir qué comp
 - [MSCI NUAM Index (MSCI)](https://www.msci.com/documents/10199/9a24b1cd-5825-57b1-1def-a01aa76ad69c)
 - [Chile completa su reforma de índices y pasa a MSCI (The Rio Times)](https://www.riotimesonline.com/chile-nuam-index-convergence-msci-2026/)
 - [Principios IOSCO para Índices Financieros (2013)](https://www.iosco.org/library/pubdocs/pdf/IOSCOPD415.pdf)
-- [Web Services de la BDE (Banco Central de Chile)](https://si3.bcentral.cl/estadisticas/Principal1/Web_Services/doc_es.htm)
+- [API para Base de Datos Estadísticos (Banco Central de Chile)](https://si3.bcentral.cl/estadisticas/Principal1/Web_Services/index_API_sec1_es.htm)
+- [bcchapi, librería oficial del Banco Central (PyPI)](https://pypi.org/project/bcchapi)
+- [S&P CLX IPSA Historical Data (Investing.com)](https://www.investing.com/indices/ipsa-historical-data)
 - [yfinance: advertencia de uso personal (Ran Aroussi)](https://aroussi.com/post/python-yahoo-finance)
 - [yfinance issue #2966: histórico roto para mercados nuam](https://github.com/ranaroussi/yfinance/issues/2966)
 - [Ley Fintec N°21.521 (CMF Educa)](https://www.cmfchile.cl/educa/621/w3-propertyvalue-46340.html)
